@@ -42,6 +42,7 @@ class ProxyHandler(tornado.web.RequestHandler):
 
 
         def returnCache(response):
+            #print response
             self.set_status(int(response[0]))
             if response[2]:
                 self.set_header(response[1], response[2])
@@ -77,6 +78,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             if v:
                 r.rpush(self.request.uri, header)   #header name
                 r.rpush(self.request.uri, v)        #header info
+                break
         r.rpush(self.request.uri, response.body)    #content
         r.expire(self.request.uri, 100)         #delete cache in 100 second
 
