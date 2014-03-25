@@ -14,50 +14,35 @@ r.flushall()
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
 
-
     @tornado.web.asynchronous
-    def requestHandler(self):
-
+    def requestHandler(self, request):
         def handle_response(response):
             print response.code
             if response.code == 599:
                 return #for dropbox notification
-            if response.error and not isinstance(response.error,
-                    tornado.httpclient.HTTPError):
+            if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
                 self.set_status(500)
                 self.write('Internal server error:\n' + str(response.error))
-                self.finish()
             else:
                 if not r.exists(self.request.uri):
                     self._setCache(response)
                 self.set_status(response.code)
-                for header in ('Date', 'Cache-Control', 'Server',
-                        'Content-Type', 'Location'):
+                for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
                     v = response.headers.get(header)
                     if v:
                         self.set_header(header, v)
                 if response.body:
                     self.write(response.body)
-                self.finish()
-
-
-        def returnCache(response):
-            #print response
-            self.set_status(int(response[0]))
-            if response[2]:
-                self.set_header(response[1], response[2])
-            if response[3]:
-                self.write(response[3])
             self.finish()
 
-        if r.exists(self.request.uri):
+        if r.exists(request.uri):
             print "return cache !!"
-            returnCache(r.lrange(self.request.uri,0,-1))
+            self._getCache(r.lrange(request.uri,0,-1))
         else:
             req = tornado.httpclient.HTTPRequest(
-                  url=self.request.uri,
-                  method=self.request.method, body=self.request.body,
-                  headers=self.request.headers, follow_redirects=False,
+                  url=request.uri,
+                  method=request.method, body=request.body,
+                  headers=request.headers, follow_redirects=False,
                   allow_nonstandard_methods=True)
             client = tornado.httpclient.AsyncHTTPClient()
             try:
@@ -69,6 +54,16 @@ class ProxyHandler(tornado.web.RequestHandler):
                     self.set_status(500)
                     self.write('Internal server error:\n' + str(e))
                     self.finish()
+
+    @tornado.web.asynchronous
+    def _getCache(self, response):
+        #print response
+        self.set_status(int(response[0]))
+        if response[2]:
+            self.set_header(response[1], response[2])
+        if response[3]:
+            self.write(response[3])
+        self.finish()
 
     @tornado.web.asynchronous
     def _setCache(self, response):
@@ -84,25 +79,25 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        return self.requestHandler()
+        return self.requestHandler(self.request)
     @tornado.web.asynchronous
     def post(self):
-        return self.requestHandler()
+        return self.requestHandler(self.request)
     @tornado.web.asynchronous
     def head(self):
-        return self.requestHandler()#same as GET, but it returns only HTTP header
+        return self.requestHandler(self.request)#same as GET, but it returns only HTTP header
     @tornado.web.asynchronous
     def delete(self):
-        return self.requestHandler()#delete file located in  server by specifing URI
+        return self.requestHandler(self.request)#delete file located in  server by specifing URI
     @tornado.web.asynchronous
     def patch(self):
-        return self.requestHandler()#same as put, but it changes only difference
+        return self.requestHandler(self.request)#same as put, but it changes only difference
     @tornado.web.asynchronous
     def put(self):
-        return self.requestHandler()#replace file located in server by specifing URI
+        return self.requestHandler(self.request)#replace file located in server by specifing URI
     @tornado.web.asynchronous
     def options(self):
-        return self.requestHandler()#notification of trasfer option
+        return self.requestHandler(self.request)#notification of trasfer option
     @tornado.web.asynchronous
     def connect(self):
         host, port = self.request.uri.split(':')
