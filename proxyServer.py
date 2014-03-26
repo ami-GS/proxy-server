@@ -16,66 +16,73 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def requestHandler(self, request):
-        def handle_response(response):
-            print response.code
-            if response.code == 599:
-                return #for dropbox notification
-            if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
-                self.set_status(500)
-                self.write('Internal server error:\n' + str(response.error))
-            else:
-                if not r.exists(self.request.uri):
-                    self._setCache(response)
-                self.set_status(response.code)
-                for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
-                    v = response.headers.get(header)
-                    if v:
-                        self.set_header(header, v)
-                if response.body:
-                    self.write(response.body)
-            self.finish()
-
-        if r.exists(request.uri):
+        if request.method != "POST" and r.exists(request.uri):
             print "return cache !!"
             self._getCache(r.lrange(request.uri,0,-1))
         else:
-            req = tornado.httpclient.HTTPRequest(
-                  url=request.uri,
-                  method=request.method, body=request.body,
-                  headers=request.headers, follow_redirects=False,
-                  allow_nonstandard_methods=True)
-            client = tornado.httpclient.AsyncHTTPClient()
-            try:
-                client.fetch(req, handle_response)
-            except tornado.httpclient.HTTPError as e:
-                if hasattr(e, 'response') and e.response:
-                    handle_response(e.response)
-                else:
-                    self.set_status(500)
-                    self.write('Internal server error:\n' + str(e))
-                    self.finish()
+            self._sendRequest(request)
+
+    @tornado.web.asynchronous
+    def handle_response(self, response):
+        print response.code
+        if response.code == 599:
+            return #for dropbox notification
+        if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
+            self.set_status(500)
+            self.write('Internal server error:\n' + str(response.error))
+        else:
+            if not r.exists(self.request.uri):
+                self._setCache(response)
+            self.set_status(response.code)
+            for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
+                v = response.headers.get(header)
+                if v:
+                    self.set_header(header, v)
+            if response.body:
+                self.write(response.body)
+            self.finish()
+
+    @tornado.web.asynchronous
+    def _sendRequest(self, request):
+        req = tornado.httpclient.HTTPRequest(
+              url=request.uri,
+              method=request.method, body=request.body,
+              headers=request.headers, follow_redirects=False,
+              allow_nonstandard_methods=True)
+        client = tornado.httpclient.AsyncHTTPClient()
+        try:
+            client.fetch(req, self.handle_response)
+        except tornado.httpclient.HTTPError as e:
+            if hasattr(e, 'response') and e.response:
+                self.handle_response(e.response)
+            else:
+                self.set_status(500)
+                self.write('Internal server error:\n' + str(e))
+                self.finish()
 
     @tornado.web.asynchronous
     def _getCache(self, response):
-        #print response
-        self.set_status(int(response[0]))
-        if response[2]:
-            self.set_header(response[1], response[2])
-        if response[3]:
-            self.write(response[3])
+        self.set_status(int(response[1]))
+        for i in range(3, int(response[0]), 2):
+            self.set_header(response[i], response[i+1])
+        if self.get_status() != 304:
+            self.write(response[2])
         self.finish()
 
     @tornado.web.asynchronous
     def _setCache(self, response):
-        r.rpush(self.request.uri, response.code)    #response code
+        query = [response.code]
+        query.append(response.body)
         for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
             v = response.headers.get(header)
             if v:
-                r.rpush(self.request.uri, header)   #header name
-                r.rpush(self.request.uri, v)        #header info
-                break
-        r.rpush(self.request.uri, response.body)    #content
-        r.expire(self.request.uri, 100)         #delete cache in 100 second
+                query.append(header)
+                query.append(v)
+
+        r.rpush(self.request.uri, len(query))
+        for i in range(len(query)):
+            r.rpush(self.request.uri, query[i])
+        r.expire(self.request.uri, 100)
 
     @tornado.web.asynchronous
     def get(self):
