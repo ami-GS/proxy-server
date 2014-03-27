@@ -20,7 +20,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             print "return cache !!"
             self._getCache(r.lrange(request.uri,0,-1))
         else:
-            self._sendRequest(request)
+            self.sendRequest(request)
 
     @tornado.web.asynchronous
     def handle_response(self, response):
@@ -34,6 +34,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             if not r.exists(self.request.uri):
                 self._setCache(response)
             self.set_status(response.code)
+
             for header in ('Date', 'Cache-Control', 'Server', 'Content-Type', 'Location'):
                 v = response.headers.get(header)
                 if v:
@@ -43,7 +44,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             self.finish()
 
     @tornado.web.asynchronous
-    def _sendRequest(self, request):
+    def sendRequest(self, request):
         req = tornado.httpclient.HTTPRequest(
               url=request.uri,
               method=request.method, body=request.body,
@@ -62,11 +63,11 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def _getCache(self, response):
-        self.set_status(int(response[1]))
-        for i in range(3, int(response[0]), 2):
+        self.set_status(int(response[0]))
+        for i in range(2, len(response), 2):
             self.set_header(response[i], response[i+1])
         if self.get_status() != 304:
-            self.write(response[2])
+            self.write(response[1])
         self.finish()
 
     @tornado.web.asynchronous
@@ -79,9 +80,8 @@ class ProxyHandler(tornado.web.RequestHandler):
                 query.append(header)
                 query.append(v)
 
-        r.rpush(self.request.uri, len(query))
-        for i in range(len(query)):
-            r.rpush(self.request.uri, query[i])
+        for q in query:
+            r.rpush(self.request.uri, q)
         r.expire(self.request.uri, 100)
 
     @tornado.web.asynchronous
