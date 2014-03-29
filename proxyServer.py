@@ -14,6 +14,15 @@ r.flushall()
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
 
+    def initialize(self, setFilt):
+        if setFilt:
+            self._setFilter()
+
+    @tornado.web.asynchronous
+    def _setFilter(self):
+        with open("./filterUrl.txt", "r") as f:
+            self.filter = [line for line in f.readlines()]
+
     @tornado.web.asynchronous
     def requestHandler(self, request):
         if request.method != "POST" and r.exists(request.uri):
@@ -143,7 +152,7 @@ class ProxyHandler(tornado.web.RequestHandler):
 
 def run_proxy(port):
     app = tornado.web.Application([
-        (r'.*', ProxyHandler),
+        (r'.*', ProxyHandler, dict(setFilt=False)),
     ])
     app.listen(port)
     ioloop = tornado.ioloop.IOLoop.instance()
