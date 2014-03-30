@@ -14,22 +14,32 @@ r.flushall()
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
 
-    def initialize(self, setFilt):
-        if setFilt:
-            self._setFilter()
+    def initialize(self):
+        pass
 
-    @tornado.web.asynchronous
-    def _setFilter(self):
-        with open("./filterUrl.txt", "r") as f:
-            self.filter = [line for line in f.readlines()]
 
     @tornado.web.asynchronous
     def requestHandler(self, request):
+        if black:
+            if True in [url in self.request.uri for url in blackList]:
+                self.denyRequest()
+                return
+        if white:
+            if True in [url not in self.request.uri for url in whiteList]:
+                self.denyRequest()
+                return
+
         if request.method != "POST" and r.exists(request.uri):
             print "return cache !!"
             self._getCache(r.lrange(request.uri,0,-1))
         else:
             self.sendRequest(request)
+
+    @tornado.web.asynchronous
+    def denyRequest(self):
+        self.set_status(403)
+        self.write("Forbidden")
+        self.finish()
 
     @tornado.web.asynchronous
     def handle_response(self, response):
@@ -150,18 +160,43 @@ class ProxyHandler(tornado.web.RequestHandler):
 
  
 
-def run_proxy(port):
+def run_proxy(port, black, white):
+    if black or white:
+        setFilter(black, white)
+
     app = tornado.web.Application([
-        (r'.*', ProxyHandler, dict(setFilt=False)),
+        (r'.*', ProxyHandler,),
     ])
     app.listen(port)
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
+whiteList = []
+blackList = []
+def setFilter(black, white):
+    global whiteList, blackList
+    def readFile(file):
+        with open(file, "r") as f:
+            return [line.split("\n")[0] for line in f.readlines()]
+
+    if white:
+        whiteList = readFile("./filters/whiteList.txt")
+    if black:
+        blackList = readFile("./filters/blackList.txt")
+
+
 if __name__ == '__main__':
     port = 8888
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
+    black = False
+    white = False
+    if len(sys.argv) >= 2:
+        if sys.argv.count("-p"):
+            port = int(sys.argv[sys.argv.index("-p")+1])
+        if sys.argv.count("-b"):
+            black = True
+        if sys.argv.count("-w"):
+            white = True
+
 
     print ("Starting HTTP proxy on port", port)
-    run_proxy(port)
+    run_proxy(port, black, white)
