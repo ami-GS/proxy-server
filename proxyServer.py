@@ -17,7 +17,6 @@ class ProxyHandler(tornado.web.RequestHandler):
     def initialize(self):
         pass
 
-
     @tornado.web.asynchronous
     def requestHandler(self, request):
         if black:
@@ -28,12 +27,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             if True in [url not in self.request.uri for url in whiteList]:
                 self.denyRequest()
                 return
-
-        if request.method != "POST" and r.exists(request.uri):
-            print "return cache !!"
-            self._getCache(r.lrange(request.uri,0,-1))
-        else:
-            self.sendRequest(request)
+        self.sendRequest(request)
 
     @tornado.web.asynchronous
     def denyRequest(self):
@@ -105,7 +99,11 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        return self.requestHandler(self.request)
+        if enableCache and r.exists(self.request.uri):
+            print "return cache!"
+            self._getCache(r.lrange(self.request.uri, 0, -1))
+        else:
+            return self.requestHandler(self.request)
     @tornado.web.asynchronous
     def post(self):
         return self.requestHandler(self.request)
@@ -160,7 +158,7 @@ class ProxyHandler(tornado.web.RequestHandler):
 
  
 
-def run_proxy(port, black, white):
+def run_proxy(port, black, white, enableCache):
     if black or white:
         setFilter(black, white)
 
@@ -189,7 +187,10 @@ if __name__ == '__main__':
     port = 8888
     black = False
     white = False
+    enableCache = False
     if len(sys.argv) >= 2:
+        if sys.argv.count("-c"):
+            enableCache = True
         if sys.argv.count("-p"):
             port = int(sys.argv[sys.argv.index("-p")+1])
         if sys.argv.count("-b"):
@@ -199,4 +200,4 @@ if __name__ == '__main__':
 
 
     print ("Starting HTTP proxy on port", port)
-    run_proxy(port, black, white)
+    run_proxy(port, black, white, enableCache)
