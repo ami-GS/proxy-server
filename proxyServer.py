@@ -37,7 +37,7 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def handle_response(self, response):
-        print response.code
+        print(response.code)
         if response.code == 599:
             return #for dropbox notification
         if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
@@ -100,7 +100,7 @@ class ProxyHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         if enableCache and r.exists(self.request.uri):
-            print "return cache!"
+            print("return cache!")
             self._getCache(r.lrange(self.request.uri, 0, -1))
         else:
             return self.requestHandler(self.request)
@@ -169,8 +169,6 @@ def run_proxy(port, black, white, enableCache):
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
-whiteList = []
-blackList = []
 def setFilter(black, white):
     global whiteList, blackList
     def readFile(file):
@@ -199,5 +197,5 @@ if __name__ == '__main__':
             white = True
 
 
-    print ("Starting HTTP proxy on port", port)
+    print("Starting HTTP proxy on port", port)
     run_proxy(port, black, white, enableCache)
