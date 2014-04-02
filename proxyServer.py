@@ -186,16 +186,25 @@ if __name__ == '__main__':
     black = False
     white = False
     enableCache = False
-    if len(sys.argv) >= 2:
-        if sys.argv.count("-c"):
+    args = sys.argv
+
+    comment = "Starting HTTP proxy on port %d\n"
+    if len(args) >= 2:
+        if args.count("-c"):
             enableCache = True
-        if sys.argv.count("-p"):
-            port = int(sys.argv[sys.argv.index("-p")+1])
-        if sys.argv.count("-b"):
+            comment += "Cache enabled\n"
+        if args.count("-p"):
+            try:
+                port = int(args[args.index("-p")+1])
+            except (ValueError, IndexError) as e:
+                print("port number should be written next to '-p'")
+                exit(-1)
+        if args.count("-b"):
             black = True
-        if sys.argv.count("-w"):
+            comment += "Blacklist enabled\n"
+        if args.count("-w"):
             white = True
+            comment += "Whitelist enabled\n"
 
-
-    print("Starting HTTP proxy on port", port)
+    print comment % port
     run_proxy(port, black, white, enableCache)
