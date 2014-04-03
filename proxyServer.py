@@ -19,11 +19,11 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def requestHandler(self, request):
-        if black:
+        if blackList:
             if True in [url in self.request.uri for url in blackList]:
                 self.denyRequest()
                 return
-        if white:
+        if whiteList:
             if True in [url not in self.request.uri for url in whiteList]:
                 self.denyRequest()
                 return
@@ -158,10 +158,7 @@ class ProxyHandler(tornado.web.RequestHandler):
 
  
 
-def run_proxy(port, black, white, enableCache):
-    if black or white:
-        setFilter(black, white)
-
+def run_proxy(port, enableCache):
     app = tornado.web.Application([
         (r'.*', ProxyHandler,),
     ])
@@ -169,22 +166,19 @@ def run_proxy(port, black, white, enableCache):
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
-def setFilter(black, white):
+def setFilter(filtType):
     global whiteList, blackList
     def readFile(file):
-        with open(file, "r") as f:
+        with open("./filters/"+file+"List.txt", "r") as f:
             return [line.split("\n")[0] for line in f.readlines()]
 
-    if white:
-        whiteList = readFile("./filters/whiteList.txt")
-    if black:
-        blackList = readFile("./filters/blackList.txt")
+    return readFile(filtType)
 
 
 if __name__ == '__main__':
     port = 8888
-    black = False
-    white = False
+    blackList = []
+    whiteList = []
     enableCache = False
     args = sys.argv
 
@@ -200,11 +194,11 @@ if __name__ == '__main__':
                 print("port number should be written next to '-p'")
                 exit(-1)
         if args.count("-b"):
-            black = True
+            blackList = setFilter("black")
             comment += "Blacklist enabled\n"
         if args.count("-w"):
-            white = True
+            whiteList = setFilter("white")
             comment += "Whitelist enabled\n"
 
     print comment % port
-    run_proxy(port, black, white, enableCache)
+    run_proxy(port, enableCache)
