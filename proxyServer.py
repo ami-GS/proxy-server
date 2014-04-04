@@ -166,7 +166,7 @@ def run_proxy(port, enableCache):
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.start()
 
-def setFilter(filtType):
+def getFilter(filtType):
     global whiteList, blackList
     def readFile(file):
         with open("./filters/"+file+"List.txt", "r") as f:
@@ -194,10 +194,10 @@ if __name__ == '__main__':
                 print("port number should be written next to '-p'")
                 exit(-1)
         if args.count("-b"):
-            blackList = setFilter("black")
+            blackList = getFilter("black")
             comment += "Blacklist enabled\n"
         if args.count("-w"):
-            whiteList = setFilter("white")
+            whiteList = getFilter("white")
             comment += "Whitelist enabled\n"
 
     print comment % port
