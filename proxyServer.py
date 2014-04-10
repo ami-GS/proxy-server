@@ -9,7 +9,6 @@ import tornado.httpclient
 import redis
 
 r = redis.Redis(host="127.0.0.1", port=6379, db=0)
-r.flushall()
 
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
@@ -187,6 +186,8 @@ if __name__ == '__main__':
         if args.count("-c"):
             enableCache = True
             comment += "Cache enabled\n"
+            if args.index("-c")+1 == args.index("init"):
+                r.flushall()
         if args.count("-p"):
             try:
                 port = int(args[args.index("-p")+1])

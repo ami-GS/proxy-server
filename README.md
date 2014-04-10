@@ -5,7 +5,7 @@ proxy server using tornado and redis
 
 
 ### Usage
-proxyServer.py [-c] [-p portNumber] [-b] [-w]
+proxyServer.py [-c [init]] [-p portNumber] [-b] [-w]
 
 
 ## Credits
