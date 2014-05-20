@@ -37,6 +37,11 @@ class ProxyHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def handle_response(self, response):
         print(response.code)
+
+        if blackList:
+            if True in [content in response.body for content in blackList]:
+                self.denyRequest()
+                return
         if response.code == 599:
             return #for dropbox notification
         if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
