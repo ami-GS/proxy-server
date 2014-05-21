@@ -1,5 +1,6 @@
 import sys
 import socket
+import json
 
 import tornado.httpserver
 import tornado.ioloop
@@ -19,11 +20,11 @@ class ProxyHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def requestHandler(self, request):
         if blackList:
-            if True in [url in self.request.uri for url in blackList]:
+            if True in [url in self.request.uri for url in blackList["url"]]:
                 self.denyRequest()
                 return
         if whiteList:
-            if True in [url not in self.request.uri for url in whiteList]:
+            if True in [url not in self.request.uri for url in whiteList["url"]]:
                 self.denyRequest()
                 return
         self.sendRequest(request)
@@ -39,7 +40,7 @@ class ProxyHandler(tornado.web.RequestHandler):
         print(response.code)
 
         if blackList:
-            if True in [content in response.body for content in blackList]:
+            if True in [content in response.body for content in blackList["content"]]:
                 self.denyRequest()
                 return
         if response.code == 599:
@@ -174,7 +175,7 @@ def getFilter(filtType):
     global whiteList, blackList
     def readFile(file):
         with open("./filters/"+file+"List.txt", "r") as f:
-            return [line.split("\n")[0] for line in f.readlines()]
+            return json.loads(f.read())
 
     return readFile(filtType)
 
