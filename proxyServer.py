@@ -19,30 +19,14 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def requestHandler(self, request):
-        if blackList:
-            if True in [url in self.request.uri for url in blackList["url"]]:
-                self.denyRequest()
-                return
-        if whiteList:
-            if True in [url not in self.request.uri for url in whiteList["url"]]:
-                self.denyRequest()
-                return
+        self.useFilter("black", "url")
+        self.useFilter("white", "url")
         self.sendRequest(request)
 
     @tornado.web.asynchronous
-    def denyRequest(self):
-        self.set_status(403)
-        self.write("Forbidden")
-        self.finish()
-
-    @tornado.web.asynchronous
     def handle_response(self, response):
-        print(response.code)
+        self.useFilter("black", "content")
 
-        if blackList:
-            if True in [content in response.body for content in blackList["content"]]:
-                self.denyRequest()
-                return
         if response.code == 599:
             return #for dropbox notification
         if response.error and not isinstance(response.error, tornado.httpclient.HTTPError):
@@ -161,7 +145,22 @@ class ProxyHandler(tornado.web.RequestHandler):
         upstream = tornado.iostream.IOStream(s)
         upstream.connect((host, int(port)), start_tunnel)
 
- 
+    @tornado.web.asynchronous
+    def useFilter(self, filter="black", type="url"):
+        def denyRequest():
+            self.set_status(403)
+            self.write("Forbidden %s" % type)
+            self.finish()
+
+        if filter == "black":
+            if True in [url in self.request.uri for url in blackList[type]]:
+                denyRequest()
+                return
+        elif filter == "white":
+            if True not in [url in self.request.uri for url in whiteList[type]]:
+                denyRequest()
+                return
+
 
 def run_proxy(port, enableCache):
     app = tornado.web.Application([
