@@ -19,8 +19,6 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def requestHandler(self, request):
-        self.useFilter("black", "url")
-        self.useFilter("white", "url")
         self.sendRequest(request)
 
     @tornado.web.asynchronous
@@ -88,6 +86,8 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
+        self.useFilter("black", "url")
+        self.useFilter("white", "url")
         if enableCache and r.exists(self.request.uri):
             print("return cache!")
             self._getCache(r.lrange(self.request.uri, 0, -1))
@@ -113,6 +113,8 @@ class ProxyHandler(tornado.web.RequestHandler):
         return self.requestHandler(self.request)#notification of trasfer option
     @tornado.web.asynchronous
     def connect(self):
+        self.useFilter("black", "url")
+        self.useFilter("white", "url")
         host, port = self.request.uri.split(':')
         client = self.request.connection.stream
 
