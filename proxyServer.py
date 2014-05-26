@@ -7,9 +7,12 @@ import tornado.ioloop
 import tornado.iostream
 import tornado.web
 import tornado.httpclient
-import redis
 
-r = redis.Redis(host="127.0.0.1", port=6379, db=0)
+try:
+    import redis
+    r = redis.Redis(host="127.0.0.1", port=6379, db=0)
+except:
+    r = None
 
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
@@ -191,10 +194,13 @@ if __name__ == '__main__':
     comment = "Starting HTTP proxy on port %d\n"
     if len(args) >= 2:
         if args.count("-c"):
-            enableCache = True
-            comment += "Cache enabled\n"
-            if args.index("-c")+1 == args.index("init"):
-                r.flushall()
+            if not r:
+                print("please install python redis client.")
+            else:
+                enableCache = True
+                comment += "Cache enabled\n"
+                if args.index("-c")+1 == args.index("init"):
+                    r.flushall()
         if args.count("-p"):
             try:
                 port = int(args[args.index("-p")+1])
