@@ -14,6 +14,9 @@ try:
 except:
     r = None
 
+blackList = []
+whiteList = []
+
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
 
@@ -183,36 +186,44 @@ def getFilter(filtType):
 
     return readFile(filtType)
 
+def setParam(paramType):
+    port = 8888
+    global whiteList, blackList
+    enableCache = False
+    comment = "Starting HTTP proxy on port %d\n"
+    if paramType.count("c"):
+        if not r:
+            print("please install python redis client.")
+        else:
+            enableCache = True
+            comment += "Cache enabled\n"
+            if args.index("init"):
+                r.flushall()
+    if paramType.count("p"):
+        try:
+            for i in range(2, len(args)):
+                port = int(args[i])
+        except (ValueError, IndexError) as e:
+            pass
+    if paramType.count("b"):
+        blackList = getFilter("black")
+        comment += "Blacklist enabled\n"
+    if paramType.count("w"):
+        whiteList = getFilter("white")
+        comment += "Whitelist enabled\n"
+
+    return comment, enableCache, port
 
 if __name__ == '__main__':
-    port = 8888
-    blackList = []
-    whiteList = []
-    enableCache = False
     args = sys.argv
 
-    comment = "Starting HTTP proxy on port %d\n"
+    param = ""
     if len(args) >= 2:
-        if args.count("-c"):
-            if not r:
-                print("please install python redis client.")
-            else:
-                enableCache = True
-                comment += "Cache enabled\n"
-                if args.index("-c")+1 == args.index("init"):
-                    r.flushall()
-        if args.count("-p"):
-            try:
-                port = int(args[args.index("-p")+1])
-            except (ValueError, IndexError) as e:
-                print("port number should be written next to '-p'")
-                exit(-1)
-        if args.count("-b"):
-            blackList = getFilter("black")
-            comment += "Blacklist enabled\n"
-        if args.count("-w"):
-            whiteList = getFilter("white")
-            comment += "Whitelist enabled\n"
+        for arg in args:
+            if arg.count("-"):
+                param += arg[1:]
 
-    print comment % port
+    comment, enableCache, port = setParam(param)
+
+    print(comment % port)
     run_proxy(port, enableCache)
