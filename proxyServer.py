@@ -8,9 +8,14 @@ import tornado.iostream
 import tornado.web
 import tornado.httpclient
 
+#TODO fix bug when black and/or white List filters are applied
+#TODO fix bug of asynchronous when filters are used
+
 try:
     import redis
     r = redis.Redis(host="127.0.0.1", port=6379, db=0)
+    r.rpush("test", "test")
+    r.delete("test")
 except:
     r = None
 
@@ -37,7 +42,7 @@ class ProxyHandler(tornado.web.RequestHandler):
             self.set_status(500)
             self.write('Internal server error:\n' + str(response.error))
         else:
-            if not r.exists(self.request.uri):
+            if enableCache and not r.exists(self.request.uri):
                 self._setCache(response)
             self.set_status(response.code)
 
@@ -160,11 +165,11 @@ class ProxyHandler(tornado.web.RequestHandler):
             self.write("Forbidden %s" % type)
             self.finish()
 
-        if filter == "black":
+        if filter == "black" and blackList:
             if True in [url in self.request.uri for url in blackList[type]]:
                 denyRequest()
                 return
-        elif filter == "white":
+        elif filter == "white" and whiteList:
             if True not in [url in self.request.uri for url in whiteList[type]]:
                 denyRequest()
                 return
@@ -179,7 +184,7 @@ def run_proxy(port, enableCache):
     ioloop.start()
 
 def getFilter(filtType):
-    global whiteList, blackList
+#    global whiteList, blackList
     def readFile(file):
         with open("./filters/"+file+"List.txt", "r") as f:
             return json.loads(f.read())
