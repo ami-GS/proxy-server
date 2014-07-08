@@ -21,6 +21,7 @@ except:
 
 blackList = []
 whiteList = []
+debug_mode = False
 
 class ProxyHandler(tornado.web.RequestHandler):
     SUPPORTED_METHODS = ("GET", "HEAD", "POST", "DELETE", "PATCH", "PUT", "OPTIONS", "CONNECT")
@@ -34,7 +35,8 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def handle_response(self, response):
-        self.useFilter("black", "content")
+        if self.useFilter("black", "content"):
+            self.finish(); return
 
         if response.code == 599:
             return #for dropbox notification
@@ -52,6 +54,8 @@ class ProxyHandler(tornado.web.RequestHandler):
                     self.set_header(header, v)
             if response.body:
                 self.write(response.body)
+            if response.code == 304:
+                self.flush()
             self.finish()
 
     @tornado.web.asynchronous
@@ -97,9 +101,11 @@ class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        self.useFilter("black", "url")
-        self.useFilter("white", "url")
-        if enableCache and r.exists(self.request.uri):
+        if self.useFilter("black", "url"):
+            self.finish(); return
+        if self.useFilter("white", "url"):
+            self.finish(); return
+        if debug_mode and enableCache and r.exists(self.request.uri):
             print("return cache!")
             self._getCache(r.lrange(self.request.uri, 0, -1))
         else:
@@ -124,8 +130,10 @@ class ProxyHandler(tornado.web.RequestHandler):
         return self.requestHandler(self.request)#notification of trasfer option
     @tornado.web.asynchronous
     def connect(self):
-        self.useFilter("black", "url")
-        self.useFilter("white", "url")
+        if self.useFilter("black", "url"):
+            self.finish(); return
+        if self.useFilter("white", "url"):
+            self.finish(); return
         host, port = self.request.uri.split(':')
         client = self.request.connection.stream
 
@@ -163,16 +171,16 @@ class ProxyHandler(tornado.web.RequestHandler):
         def denyRequest():
             self.set_status(403)
             self.write("Forbidden %s" % type)
-            self.finish()
 
         if filter == "black" and blackList:
             if True in [url in self.request.uri for url in blackList[type]]:
                 denyRequest()
-                return
+                return True
         elif filter == "white" and whiteList:
             if True not in [url in self.request.uri for url in whiteList[type]]:
                 denyRequest()
-                return
+                return True
+        return False
 
 
 def run_proxy(port, enableCache):
@@ -192,7 +200,7 @@ def getFilter(filtType):
     return readFile(filtType)
 
 def setParam(paramType):
-    port = 8888
+    port = 8080
     global whiteList, blackList
     enableCache = False
     comment = "Starting HTTP proxy on port %d\n"
@@ -216,6 +224,10 @@ def setParam(paramType):
     if paramType.count("w"):
         whiteList = getFilter("white")
         comment += "Whitelist enabled\n"
+    if paramType.count("debug"):
+        print("debug mode enabled!!")
+        global debug_mode
+        debug_mode = True
 
     return comment, enableCache, port
 
