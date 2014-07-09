@@ -192,7 +192,6 @@ def run_proxy(port, enableCache):
     ioloop.start()
 
 def getFilter(filtType):
-#    global whiteList, blackList
     def readFile(file):
         with open("./filters/"+file+"List.txt", "r") as f:
             return json.loads(f.read())
@@ -203,10 +202,10 @@ def setParam(paramType):
     port = 8080
     global whiteList, blackList
     enableCache = False
-    comment = "Starting HTTP proxy on port %d\n"
+    comment = "Starting HTTP proxy on address: %s port: %d\n"
     if paramType.count("c"):
         if not r:
-            print("please install python redis client.")
+            print("please install python-redis or enable redis-server.")
         else:
             enableCache = True
             comment += "Cache enabled\n"
@@ -242,5 +241,5 @@ if __name__ == '__main__':
 
     comment, enableCache, port = setParam(param)
 
-    print(comment % port)
+    print(comment % (socket.gethostbyname(socket.gethostname()),port))
     run_proxy(port, enableCache)
