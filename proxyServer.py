@@ -205,7 +205,7 @@ def setParam(paramType):
     global whiteList, blackList
     enableCache = False
     comment = "Starting HTTP proxy on address: %s port: %d\n"
-    if paramType.count("c"):
+    if paramType.count("-c"):
         if not r:
             print("please install python-redis or enable redis-server.")
         else:
@@ -213,19 +213,19 @@ def setParam(paramType):
             comment += "Cache enabled\n"
             if args.index("init"):
                 r.flushall()
-    if paramType.count("p"):
+    if paramType.count("-p"):
         try:
             for i in range(2, len(args)):
                 port = int(args[i])
         except (ValueError, IndexError) as e:
             pass
-    if paramType.count("b"):
+    if paramType.count("-b"):
         blackList = getFilter("black")
         comment += "Blacklist enabled\n"
-    if paramType.count("w"):
+    if paramType.count("-w"):
         whiteList = getFilter("white")
         comment += "Whitelist enabled\n"
-    if paramType.count("debug"):
+    if paramType.count("-debug"):
         print("debug mode enabled!!")
         global debug_mode
         debug_mode = True
@@ -239,7 +239,7 @@ if __name__ == '__main__':
     if len(args) >= 2:
         for arg in args:
             if arg.count("-"):
-                param += arg[1:]
+                param += arg
 
     comment, enableCache, port = setParam(param)
 
