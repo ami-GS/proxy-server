@@ -105,9 +105,11 @@ class ProxyHandler(tornado.web.RequestHandler):
             self.finish(); return
         if self.useFilter("white", "url"):
             self.finish(); return
-        if debug_mode and enableCache and r.exists(self.request.uri):
-            print("return cache!")
+        if enableCache and r.exists(self.request.uri):
             self._getCache(r.lrange(self.request.uri, 0, -1))
+            if debug_mode:
+                print("return cache!")
+
         else:
             return self.requestHandler(self.request)
     @tornado.web.asynchronous
@@ -169,7 +171,7 @@ class ProxyHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def useFilter(self, filter="black", type="url"):
         def denyRequest():
-            self.set_status(403)
+            #self.set_status(403) #this emit warning
             self.write("Forbidden %s" % type)
 
         if filter == "black" and blackList:
