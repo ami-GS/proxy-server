@@ -8,8 +8,7 @@ import tornado.iostream
 import tornado.web
 import tornado.httpclient
 
-#TODO fix bug when black and/or white List filters are applied
-#TODO fix bug of asynchronous when filters are used
+from daemon import DaemonContext
 
 try:
     import redis
@@ -204,6 +203,7 @@ def setParam(paramType):
     port = 8080
     global whiteList, blackList
     enableCache = False
+    daemonize = False
     comment = "Starting HTTP proxy on address: %s port: %d\n"
     if paramType.count("-c"):
         if not r:
@@ -229,8 +229,11 @@ def setParam(paramType):
         print("debug mode enabled!!")
         global debug_mode
         debug_mode = True
+    if paramType.count("-daemonize"):
+        print("daemonized!!")
+        daemonize = True
 
-    return comment, enableCache, port
+    return comment, enableCache, port, daemonize
 
 if __name__ == '__main__':
     args = sys.argv
@@ -241,7 +244,15 @@ if __name__ == '__main__':
             if arg.count("-"):
                 param += arg
 
-    comment, enableCache, port = setParam(param)
+    comment, enableCache, port, daemonize = setParam(param)
 
     print(comment % (socket.gethostbyname(socket.gethostname()),port))
-    run_proxy(port, enableCache)
+    dc = DaemonContext(
+        stderr = open("err_console.txt", "w+")
+        )
+    if daemonize:
+        with dc:
+            run_proxy(port, enableCache)
+    else:
+        run_proxy(port, enableCache)
+        print "non daemonize"
