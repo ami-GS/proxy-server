@@ -226,7 +226,7 @@ def setParam(paramType):
         whiteList = getFilter("white")
         comment += "Whitelist enabled\n"
     if paramType.count("-debug"):
-        print("debug mode enabled!!")
+        print("debug mode enabled!!(check cache function)")
         global debug_mode
         debug_mode = True
 
