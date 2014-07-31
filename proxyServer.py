@@ -255,4 +255,4 @@ if __name__ == '__main__':
             run_proxy(port, enableCache)
     else:
         run_proxy(port, enableCache)
-        print "non daemonize"
+        print("non daemonize")
