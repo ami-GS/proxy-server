@@ -1,6 +1,9 @@
 import sys
 import socket
 import json
+import six
+
+isPy2 = six.PY2
 
 import tornado.httpserver
 import tornado.ioloop
@@ -8,7 +11,9 @@ import tornado.iostream
 import tornado.web
 import tornado.httpclient
 
-from daemon import DaemonContext
+if isPy2:
+    from daemon import DaemonContext
+
 
 try:
     import redis
@@ -247,10 +252,10 @@ if __name__ == '__main__':
     comment, enableCache, port, daemonize = setParam(param)
 
     print(comment % (socket.gethostbyname(socket.gethostname()),port))
-    dc = DaemonContext(
-        stderr = open("err_console.txt", "w+")
-        )
     if daemonize:
+        dc = DaemonContext(
+            stderr = open("err_console.txt", "w+"),
+        )
         with dc:
             run_proxy(port, enableCache)
     else:
