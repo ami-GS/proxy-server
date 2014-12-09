@@ -221,9 +221,9 @@ def setParam(paramType):
     if paramType.count("-p"):
         try:
             for i in range(2, len(args)):
-                port = int(args[i])
+                port = int(args[args.index("-p")+1])
         except (ValueError, IndexError) as e:
-            pass
+            comment += "no port number declared (set to 8080)\n"
     if paramType.count("-b"):
         blackList = getFilter("black")
         comment += "Blacklist enabled\n"
@@ -231,11 +231,11 @@ def setParam(paramType):
         whiteList = getFilter("white")
         comment += "Whitelist enabled\n"
     if paramType.count("-debug"):
-        print("debug mode enabled!!(check cache function)")
+        comment += "debug mode enabled!!(check cache function)\n"
         global debug_mode
         debug_mode = True
     if paramType.count("-daemonize"):
-        print("daemonized!!")
+        comment += "daemonized!!\n"
         daemonize = True
 
     return comment, enableCache, port, daemonize
@@ -248,6 +248,7 @@ if __name__ == '__main__':
         for arg in args:
             if arg.count("-"):
                 param += arg
+
 
     comment, enableCache, port, daemonize = setParam(param)
 
