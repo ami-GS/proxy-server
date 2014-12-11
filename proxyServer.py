@@ -12,7 +12,10 @@ import tornado.web
 import tornado.httpclient
 
 if isPy2:
-    from daemon import DaemonContext
+    try:
+        from daemon import DaemonContext
+    except:
+        DaemonContext = None
 
 
 try:
@@ -216,12 +219,11 @@ def setParam(paramType):
         else:
             enableCache = True
             comment += "Cache enabled\n"
-            if args.index("init"):
+            if args[args.index("-c")+1] == "init":
                 r.flushall()
     if paramType.count("-p"):
         try:
-            for i in range(2, len(args)):
-                port = int(args[args.index("-p")+1])
+            port = int(args[args.index("-p")+1])
         except (ValueError, IndexError) as e:
             comment += "no port number declared (set to 8080)\n"
     if paramType.count("-b"):
@@ -230,13 +232,16 @@ def setParam(paramType):
     if paramType.count("-w"):
         whiteList = getFilter("white")
         comment += "Whitelist enabled\n"
-    if paramType.count("-debug"):
+    if paramType.count("--debug"):
         comment += "debug mode enabled!!(check cache function)\n"
         global debug_mode
         debug_mode = True
-    if paramType.count("-daemonize"):
-        comment += "daemonized!!\n"
-        daemonize = True
+    if paramType.count("--daemonize"):
+        if not DaemonContext:
+            print("please install python-daemon")
+        else:
+            comment += "daemonized!!\n"
+            daemonize = True
 
     return comment, enableCache, port, daemonize
 
