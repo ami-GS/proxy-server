@@ -176,17 +176,17 @@ class ProxyHandler(tornado.web.RequestHandler):
         upstream.connect((host, int(port)), start_tunnel)
 
     @tornado.web.asynchronous
-    def useFilter(self, filter="black", type="url"):
+    def useFilter(self, filter="black", filtType="url"):
         def denyRequest():
             #self.set_status(403) #this emit warning
-            self.write("Forbidden %s" % type)
+            self.write("Forbidden %s" % filtType)
 
         if filter == "black" and blackList:
-            if True in [url in self.request.uri for url in blackList[type]]:
+            if True in [url in self.request.uri for url in blackList[filtType]]:
                 denyRequest()
                 return True
         elif filter == "white" and whiteList:
-            if True not in [url in self.request.uri for url in whiteList[type]]:
+            if True not in [url in self.request.uri for url in whiteList[filtType]]:
                 denyRequest()
                 return True
         return False
@@ -201,8 +201,8 @@ def run_proxy(port, enableCache):
     ioloop.start()
 
 def getFilter(filtType):
-    def readFile(file):
-        with open("./filters/"+file+"List.txt", "r") as f:
+    def readFile(ff):
+        with open("./filters/"+ ff +"List.txt", "r") as f:
             return json.loads(f.read())
 
     return readFile(filtType)
