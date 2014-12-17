@@ -16,7 +16,8 @@ if isPy2:
         from daemon import DaemonContext
     except:
         DaemonContext = None
-
+else:
+    DaemonContext = None
 
 try:
     import redis
@@ -238,7 +239,10 @@ def setParam(paramType):
         debug_mode = True
     if paramType.count("--daemonize"):
         if not DaemonContext:
-            print("please install python-daemon")
+            if isPy2:
+                print("please install python-daemon")
+            else:
+                print("please use Python3")
         else:
             comment += "daemonized!!\n"
             daemonize = True
